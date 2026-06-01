@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR scanner helper -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
     <style>
         body {
@@ -138,6 +140,10 @@
 
         <!-- Sound & Reset Buttons -->
         <div class="flex items-center space-x-3">
+            <button type="button" onclick="openArGuide()" class="hidden sm:flex items-center space-x-1 text-xs text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl font-semibold hover:bg-emerald-100 transition-colors" title="開啟 AR 教學">
+                <i class="fa-solid fa-camera"></i>
+                <span>AR 教學</span>
+            </button>
             <button id="sound-toggle" onclick="toggleMute()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="音效切換">
                 <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
             </button>
@@ -192,6 +198,10 @@
                     </div>
                 </div>
 
+                    <button type="button" onclick="openArGuide()" class="inline-flex sm:hidden items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-extrabold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-colors">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>開啟 AR 相機教學</span>
+                    </button>
                 <!-- Bottom Steps Controller Row -->
                 <div class="pt-6 border-t border-slate-200 mt-6 space-y-4">
                     <div class="flex justify-between items-center">
@@ -529,6 +539,55 @@
         </div>
     </footer>
 
+    <!-- AR Camera Guide Overlay -->
+    <div id="ar-overlay" class="fixed inset-0 z-[100] hidden bg-slate-950 text-white">
+        <video id="ar-video" class="absolute inset-0 h-full w-full object-cover" autoplay playsinline muted></video>
+
+        <div class="absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-slate-950/90 to-transparent p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-emerald-300">DREAMCATCHER AR</p>
+                    <h2 class="text-lg font-black">開機按鈕定位教學</h2>
+                </div>
+                <button type="button" onclick="closeArGuide()" class="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white backdrop-blur hover:bg-white/20 transition-colors">
+                    關閉
+                </button>
+            </div>
+        </div>
+
+        <canvas id="ar-scan-canvas" class="hidden"></canvas>
+
+        <div id="ar-scanning-layer" class="absolute inset-0 z-10 hidden pointer-events-none">
+            <div class="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-4 border-emerald-300/90 shadow-[0_0_40px_rgba(110,231,183,0.55)]">
+                <span class="absolute -left-1 -top-1 h-10 w-10 rounded-tl-3xl border-l-8 border-t-8 border-white"></span>
+                <span class="absolute -right-1 -top-1 h-10 w-10 rounded-tr-3xl border-r-8 border-t-8 border-white"></span>
+                <span class="absolute -bottom-1 -left-1 h-10 w-10 rounded-bl-3xl border-b-8 border-l-8 border-white"></span>
+                <span class="absolute -bottom-1 -right-1 h-10 w-10 rounded-br-3xl border-b-8 border-r-8 border-white"></span>
+            </div>
+            <div class="absolute bottom-24 left-1/2 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl bg-slate-950/80 px-4 py-3 text-center text-sm font-extrabold shadow-xl backdrop-blur">
+                請將 QR Code 放進框線內，掃到後會顯示按鈕位置圖
+            </div>
+        </div>
+
+        <div id="ar-live-layer" class="absolute inset-0 z-10 hidden pointer-events-none">
+            <div class="absolute inset-0 bg-slate-950/15"></div>
+            <img src="705500042_4627972420855516_2199691122314423797_n.jpg" alt="開機按鈕位置提示圖" class="absolute left-1/2 top-1/2 max-h-[74vh] w-[min(88vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border-4 border-white/90 object-contain shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <div class="absolute bottom-8 left-1/2 w-[min(92vw,440px)] -translate-x-1/2 rounded-2xl bg-slate-950/85 px-4 py-3 text-center text-sm font-extrabold shadow-xl backdrop-blur">
+                已掃描 QR Code，請依圖片標示按下開機按鈕
+            </div>
+        </div>
+
+        <div id="ar-message-card" class="absolute left-4 right-4 top-1/2 z-30 mx-auto max-w-sm -translate-y-1/2 rounded-3xl bg-white p-6 text-center text-slate-900 shadow-2xl">
+            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <i class="fa-solid fa-camera text-xl"></i>
+            </div>
+            <h3 id="ar-message-title" class="mb-2 text-lg font-black">準備掃描 QR Code</h3>
+            <p id="ar-message-text" class="mb-5 text-sm leading-relaxed text-slate-500">請允許相機權限，接著掃描 QR Code；掃到後會顯示按鈕位置圖片。</p>
+            <button id="ar-start-button" type="button" onclick="startArCamera()" class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-emerald-700 transition-colors">
+                開啟相機
+            </button>
+        </div>
+    </div>
     <!-- Script Controllers & Dynamic Physics Engine -->
     <script>
         // WEB AUDIO MOTOR SYNTHESIS
@@ -685,6 +744,8 @@
         let batteryLevel = 45;
         let chargingTimer = null;
         let productColor = 'white';
+        let arStream = null;
+        let arScanTimer = null;
 
         // CONCISE SLIDE DATA
         const stepsData = {
@@ -1173,10 +1234,128 @@
             document.getElementById('hud-battery-val').innerText = "98%";
         }
 
+
+        function openArGuide() {
+            const overlay = document.getElementById('ar-overlay');
+            const liveLayer = document.getElementById('ar-live-layer');
+            const scanningLayer = document.getElementById('ar-scanning-layer');
+            const messageCard = document.getElementById('ar-message-card');
+            const title = document.getElementById('ar-message-title');
+            const text = document.getElementById('ar-message-text');
+            const startButton = document.getElementById('ar-start-button');
+
+            overlay.classList.remove('hidden');
+            liveLayer.classList.add('hidden');
+            scanningLayer.classList.add('hidden');
+            messageCard.classList.remove('hidden');
+            title.innerText = '準備掃描 QR Code';
+            text.innerText = '請允許相機權限，接著掃描 QR Code；掃到後會顯示按鈕位置圖片。';
+            startButton.classList.remove('hidden');
+        }
+
+        async function startArCamera() {
+            const scanningLayer = document.getElementById('ar-scanning-layer');
+            const liveLayer = document.getElementById('ar-live-layer');
+            const messageCard = document.getElementById('ar-message-card');
+            const title = document.getElementById('ar-message-title');
+            const text = document.getElementById('ar-message-text');
+            const startButton = document.getElementById('ar-start-button');
+            const video = document.getElementById('ar-video');
+
+            if (!navigator.mediaDevices?.getUserMedia) {
+                title.innerText = '此瀏覽器不支援相機';
+                text.innerText = '請改用手機瀏覽器，或直接使用下方互動教學。';
+                startButton.classList.add('hidden');
+                return;
+            }
+
+            try {
+                arStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                video.srcObject = arStream;
+                await video.play();
+                messageCard.classList.add('hidden');
+                liveLayer.classList.add('hidden');
+                scanningLayer.classList.remove('hidden');
+                startQrScanner();
+            } catch (error) {
+                console.warn('AR camera error', error);
+                title.innerText = '無法開啟相機';
+                text.innerText = '請允許相機權限後重新開啟 AR 教學。若仍無法使用，請改看下方互動教學。';
+                startButton.classList.remove('hidden');
+            }
+        }
+
+        function startQrScanner() {
+            const video = document.getElementById('ar-video');
+            const canvas = document.getElementById('ar-scan-canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            stopQrScanner();
+            arScanTimer = window.setInterval(() => {
+                if (!video.videoWidth || !video.videoHeight || typeof jsQR !== 'function') return;
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+                if (qrCode) showArGuideImage();
+            }, 250);
+        }
+
+        function stopQrScanner() {
+            if (arScanTimer) {
+                window.clearInterval(arScanTimer);
+                arScanTimer = null;
+            }
+        }
+
+        function showArGuideImage() {
+            stopQrScanner();
+            document.getElementById('ar-scanning-layer').classList.add('hidden');
+            document.getElementById('ar-live-layer').classList.remove('hidden');
+        }
+
+        function closeArGuide() {
+            const overlay = document.getElementById('ar-overlay');
+            const video = document.getElementById('ar-video');
+
+            stopQrScanner();
+            if (arStream) {
+                arStream.getTracks().forEach(track => { track.stop(); });
+                arStream = null;
+            }
+
+            video.pause();
+            video.srcObject = null;
+            overlay.classList.add('hidden');
+        }
+
+        function initArModeFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('mode') === 'ar') {
+                openArGuide();
+            }
+        }
         window.onload = function() {
             initPowerButtonEvents();
             goToStep(1);
+            initArModeFromUrl();
         }
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
