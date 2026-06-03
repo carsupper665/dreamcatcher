@@ -571,7 +571,7 @@
 
         <div id="ar-live-layer" class="absolute inset-0 z-10 hidden pointer-events-none">
             <div class="absolute inset-0 bg-slate-950/15"></div>
-            <img src="705500042_4627972420855516_2199691122314423797_n.jpg" alt="開機按鈕位置提示圖" class="absolute left-1/2 top-1/2 max-h-[74vh] w-[min(88vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border-4 border-white/90 object-contain shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <img src="image/ar-power-button-overlay.png" alt="開機按鈕位置提示圖" class="absolute left-1/2 top-1/2 max-h-[74vh] w-[min(88vw,520px)] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_24px_55px_rgba(0,0,0,0.5)]">
             <div class="absolute bottom-8 left-1/2 w-[min(92vw,440px)] -translate-x-1/2 rounded-2xl bg-slate-950/85 px-4 py-3 text-center text-sm font-extrabold shadow-xl backdrop-blur">
                 已掃描 QR Code，請依圖片標示按下開機按鈕
             </div>
@@ -746,6 +746,7 @@
         let productColor = 'white';
         let arStream = null;
         let arScanTimer = null;
+        const arGuideQrPayload = 'DREAMCATCHER_AR_POWER_BUTTON_TEST';
 
         // CONCISE SLIDE DATA
         const stepsData = {
@@ -1303,7 +1304,7 @@
 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-                if (qrCode) showArGuideImage();
+                if (qrCode?.data?.trim() === arGuideQrPayload) showArGuideImage();
             }, 250);
         }
 
